@@ -15,7 +15,6 @@ import torch.autograd as autograd
 from torch.autograd import Variable
 
 
-
 parser = argparse.ArgumentParser(description='PyTorch REINFORCE example')
 parser.add_argument('--gamma', type=float, default=0.99, metavar='G',
                     help='discount factor (default: 0.99)')
@@ -28,48 +27,46 @@ parser.add_argument('--log_interval', type=int, default=10, metavar='N',
 args = parser.parse_args()
 
 
-
 env = gym.make('CartPole-v0')
 env.seed(args.seed)
 torch.manual_seed(args.seed)
 
-# for _ in range(1000):
-#     env.render()
-#     env.step(env.action_space.sample())
 
 class Policy(nn.Module):
-	def __init__(self):
-		super(Policy, self).__init__()
-		self.affine1 = nn.linear(4,28)
-		self.affine2 = nn.linear(128,2)
+    def __init__(self):
+        super(Policy, self).__init__()
+        self.affine1 = nn.Linear(4, 128)
+        self.affine2 = nn.Linear(128, 2)
 
-		self.saved_actions = []
-		self.rewards = []
+        self.saved_actions = []
+        self.rewards = []
 
+    def forward(self, x):
+        x = F.relu(self.affine1(x))
+        action_scores = self.affine2(x)
+        return F.softmax(action_scores)
 
-	def forward(self,x):
-		x = F.relu(self.affine1(x))
-		action_scores = self.affine2(x)
-		return F.softmax(action_scores)
 
 model = Policy()
 optimizer = optim.Adam(model.parameters(), lr=1e-2)
 
-def select_action(state):
-	state = torch.from_numpy(state).float().unsqueeze(0)
-	probs = model(Variable(state))
-	action = probs.multinomial()
-	model.saved_actions.append(action)
-	return action.data
 
-def finsih_episode():
-	R = 0
-	rewards = []
-	for r in model.rewards[::-1]:
-		R = r + args.gamma * R
-		rewards.insert(0,R)
-		rewards = torch.tensor(rewards)
-		rewards = (rewards - rewards.mean()) / (rewards.std() + np.finfo(np.float32).eps)
+def select_action(state):
+    state = torch.from_numpy(state).float().unsqueeze(0)
+    probs = model(Variable(state))
+    action = probs.multinomial()
+    model.saved_actions.append(action)
+    return action.data
+
+
+def finish_episode():
+    R = 0
+    rewards = []
+    for r in model.rewards[::-1]:
+        R = r + args.gamma * R
+        rewards.insert(0, R)
+    rewards = torch.Tensor(rewards)
+    rewards = (rewards - rewards.mean()) / (rewards.std() + np.finfo(np.float32).eps)
     for action, r in zip(model.saved_actions, rewards):
         action.reinforce(r)
     optimizer.zero_grad()
@@ -99,4 +96,4 @@ for i_episode in count(1):
     if running_reward > 200:
         print("Solved! Running reward is now {} and "
               "the last episode runs to {} time steps!".format(running_reward, t))
-break
+        break
