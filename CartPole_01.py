@@ -35,8 +35,8 @@ torch.manual_seed(args.seed)
 class Policy(nn.Module):
     def __init__(self):
         super(Policy, self).__init__()
-        self.affine1 = nn.Linear(4, 128)
-        self.affine2 = nn.Linear(128, 2)
+        self.affine1 = nn.Linear(4, 256)
+        self.affine2 = nn.Linear(256, 2)
 
         self.saved_actions = []
         self.rewards = []
@@ -79,7 +79,7 @@ def finish_episode():
 running_reward = 10
 for i_episode in count(1):
     state = env.reset()
-    for t in range(10000): # Don't infinite loop while learning
+    for t in range(5000): # Don't infinite loop while learning
         action = select_action(state)
         state, reward, done, _ = env.step(action[0,0])
         if args.render:
